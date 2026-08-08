@@ -7,3 +7,6 @@ Deploying using Actions/Workflow using github
 
 
 after adding secrets in github ......
+
+after changing sudo chown -R ubuntu:ubuntu /var/www/html/DevOps
+
