@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modern Calculator</title>
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: Inter, Arial, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: #f8fafc;
+    }
+
+    .calculator {
+      width: min(380px, 92vw);
+      padding: 22px;
+      border-radius: 24px;
+      background: rgba(15, 23, 42, 0.92);
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.45);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .header span {
+      font-size: 12px;
+      color: #94a3b8;
+    }
+
+    .display {
+      min-height: 125px;
+      padding: 20px;
+      margin-bottom: 16px;
+      border-radius: 18px;
+      background: #020617;
+      text-align: right;
+      overflow: hidden;
+    }
+
+    .history {
+      height: 24px;
+      color: #64748b;
+      font-size: 14px;
+    }
+
+    .current {
+      margin-top: 10px;
+      font-size: clamp(30px, 8vw, 42px);
+      font-weight: 600;
+      word-break: break-all;
+    }
+
+    .keys {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+    }
+
+    button {
+      height: 62px;
+      border: 0;
+      border-radius: 15px;
+      font-size: 20px;
+      font-weight: 600;
+      cursor: pointer;
+      color: #e2e8f0;
+      background: #1e293b;
+      transition: transform 0.1s, filter 0.15s;
+    }
+
+    button:hover { filter: brightness(1.2); }
+    button:active { transform: scale(0.95); }
+
+    .operator { background: #334155; }
+    .clear { background: #7f1d1d; }
+    .delete { background: #475569; }
+    .equals {
+      grid-row: span 2;
+      height: auto;
+      background: #2563eb;
+    }
+
+    .zero { grid-column: span 2; }
+
+    .footer {
+      margin-top: 15px;
+      text-align: center;
+      color: #64748b;
+      font-size: 12px;
+    }
+
+    @media (max-width: 400px) {
+      button { height: 56px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="calculator">
+    <div class="header">
+      <h1>Calculator</h1>
+      <span>EC2 Demo</span>
+    </div>
+
+    <section class="display">
+      <div class="history" id="history"></div>
+      <div class="current" id="display">0</div>
+    </section>
+
+    <section class="keys">
+      <button class="clear" onclick="clearAll()">AC</button>
+      <button class="delete" onclick="deleteLast()">DEL</button>
+      <button class="operator" onclick="percent()">%</button>
+      <button class="operator" onclick="chooseOperator('/')">÷</button>
+
+      <button onclick="inputNumber('7')">7</button>
+      <button onclick="inputNumber('8')">8</button>
+      <button onclick="inputNumber('9')">9</button>
+      <button class="operator" onclick="chooseOperator('*')">×</button>
+
+      <button onclick="inputNumber('4')">4</button>
+      <button onclick="inputNumber('5')">5</button>
+      <button onclick="inputNumber('6')">6</button>
+      <button class="operator" onclick="chooseOperator('-')">−</button>
+
+      <button onclick="inputNumber('1')">1</button>
+      <button onclick="inputNumber('2')">2</button>
+      <button onclick="inputNumber('3')">3</button>
+      <button class="operator" onclick="chooseOperator('+')">+</button>
+
+      <button class="zero" onclick="inputNumber('0')">0</button>
+      <button onclick="inputDecimal()">.</button>
+      <button class="equals" onclick="calculate()">=</button>
+    </section>
+
+    <div class="footer">Keyboard supported • Simple EC2 web app</div>
+  </main>
+
+  <script>
+    let current = "0";
+    let previous = null;
+    let operator = null;
+    let waitingForNumber = false;
+
+    const display = document.getElementById("display");
+    const history = document.getElementById("history");
+
+    function updateDisplay() {
+      display.textContent = current;
+    }
+
+    function inputNumber(number) {
+      if (waitingForNumber || current === "Error") {
+        current = number;
+        waitingForNumber = false;
+      } else {
+        current = current === "0" ? number : current + number;
+      }
+      updateDisplay();
+    }
+
+    function inputDecimal() {
+      if (waitingForNumber) {
+        current = "0.";
+        waitingForNumber = false;
+      } else if (!current.includes(".")) {
+        current += ".";
+      }
+      updateDisplay();
+    }
+
+    function chooseOperator(nextOperator) {
+      const inputValue = parseFloat(current);
+
+      if (operator && waitingForNumber) {
+        operator = nextOperator;
+        return;
+      }
+
+      if (previous === null) {
+        previous = inputValue;
+      } else if (operator) {
+        const result = performCalculation();
+        if (result === "Error") return;
+        current = String(result);
+        previous = result;
+        updateDisplay();
+      }
+
+      operator = nextOperator;
+      waitingForNumber = true;
+      history.textContent = `${previous} ${symbol(operator)}`;
+    }
+
+    function calculate() {
+      if (operator === null || previous === null) return;
+
+      const second = parseFloat(current);
+      const first = previous;
+      const result = performCalculation();
+
+      history.textContent = `${first} ${symbol(operator)} ${second} =`;
+      current = String(result);
+      previous = null;
+      operator = null;
+      waitingForNumber = true;
+      updateDisplay();
+    }
+
+    function performCalculation() {
+      const second = parseFloat(current);
+      let result;
+
+      if (operator === "+") result = previous + second;
+      if (operator === "-") result = previous - second;
+      if (operator === "*") result = previous * second;
+      if (operator === "/") {
+        if (second === 0) {
+          current = "Error";
+          previous = null;
+          operator = null;
+          waitingForNumber = true;
+          updateDisplay();
+          history.textContent = "Cannot divide by zero";
+          return "Error";
+        }
+        result = previous / second;
+      }
+
+      return Number.isInteger(result) ? result : Number(result.toFixed(10));
+    }
+
+    function percent() {
+      const value = parseFloat(current);
+      current = String(value / 100);
+      updateDisplay();
+    }
+
+    function deleteLast() {
+      if (waitingForNumber || current === "Error") return;
+      current = current.length > 1 ? current.slice(0, -1) : "0";
+      updateDisplay();
+    }
+
+    function clearAll() {
+      current = "0";
+      previous = null;
+      operator = null;
+      waitingForNumber = false;
+      history.textContent = "";
+      updateDisplay();
+    }
+
+    function symbol(op) {
+      return { "+": "+", "-": "−", "*": "×", "/": "÷" }[op];
+    }
+
+    document.addEventListener("keydown", (event) => {
+      const key = event.key;
+
+      if (/^[0-9]$/.test(key)) inputNumber(key);
+      else if (key === ".") inputDecimal();
+      else if (["+", "-", "*", "/"].includes(key)) chooseOperator(key);
+      else if (key === "Enter" || key === "=") calculate();
+      else if (key === "Backspace") deleteLast();
+      else if (key === "Escape") clearAll();
+      else if (key === "%") percent();
+    });
+  </script>
+</body>
+</html>
